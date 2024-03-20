@@ -1,0 +1,10 @@
+# name: env-name
+channels:
+  # - conda-forge
+  - defaults
+dependencies:
+  # - python=3.9
+  # - pip
+  # - pip:
+  #   - laspy[lazrs]~=2.0
+  #   - open3d~=0.16.0
