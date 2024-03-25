@@ -118,7 +118,7 @@ def add_label_streetlight_to_ply(input_directory, output_directory):
 
             if 'label' in ply_data['vertex'].data.dtype.names:
                 labels = ply_data['vertex']['label']
-                label_streetlight = np.array([2 if label == 2 else 1 for label in labels], dtype=np.int32)
+                label_streetlight = np.array([1 if label == 2 else 0 for label in labels], dtype=np.int32)
                 new_dtype = ply_data['vertex'].data.dtype.descr + [('label_streetlight', 'i4')]
                 new_data = np.empty(ply_data['vertex'].count, dtype=new_dtype)
                 for prop in ply_data['vertex'].data.dtype.names:
