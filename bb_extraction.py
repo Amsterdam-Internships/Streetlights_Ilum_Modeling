@@ -101,7 +101,7 @@ def create_bounding_box_laz(input_laz_file, base_filename, poles_df, box_size=5)
         las = file.read()
 
         columns = ['Grond X', 'Grond Y', 'Grond Z', 'Top X', 'Top Y', 'Top Z']
-        poles_df[columns] = poles_df[columns].apply(pd.to_numeric, errors='coerce')
+        # poles_df[columns] = poles_df[columns].apply(pd.to_numeric, errors='coerce')
 
         for index, row in poles_df.iterrows():
             # Define the bounding box for each point
@@ -110,8 +110,8 @@ def create_bounding_box_laz(input_laz_file, base_filename, poles_df, box_size=5)
                 'max_x': row['Top X'] + box_size,
                 'min_y': row['Grond Y'] - box_size,
                 'max_y': row['Top Y'] + box_size,
-                'min_z': row['Grond Z'] - box_size + 6,
-                'max_z': row['Top Z'] + box_size
+                'min_z': float(row['Grond Z'].replace(',', '.')) - box_size + 6,
+                'max_z': float(row['Top Z'].replace(',', '.')) + box_size
             }
 
             # Apply the bounding box filter
@@ -150,7 +150,7 @@ def main(directory, output_base_filename, sheet):
             input_laz_file = os.path.join(directory, filename)
             base_x, base_y = extract_numbers_from_string(filename)
             filtered_data = filter_pole_coordinates(sheet, base_x, base_y)
-            
+
             # Process each file
             create_bounding_box_laz(input_laz_file, output_base_filename, filtered_data)
 
