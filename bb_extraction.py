@@ -22,7 +22,7 @@ import pandas as pd
 import numpy as np 
 import os
 import sys 
-
+import argparse
 
 def extract_numbers_from_string(s):
     """
@@ -63,7 +63,7 @@ def filter_pole_coordinates(filename, base_x, base_y):
     """
 
     # Read the Excel file
-    df = pd.read_excel(filename)
+    df = pd.read_csv(filename)
 
     # Assuming that the decimal separator is a comma, replace it with a dot and convert to float
     df['Grond X'] = df['Grond X'].apply(lambda x: float(str(x).replace(',', '.')))
@@ -79,7 +79,7 @@ def filter_pole_coordinates(filename, base_x, base_y):
 
     return filtered_df[['Grond X', 'Top X', 'Grond Y', 'Top Y', 'Grond Z', 'Top Z']]
 
-def create_bounding_box_laz(input_laz_file, base_filename, poles_df, box_size=1):
+def create_bounding_box_laz(input_laz_file, base_filename, poles_df, box_size=5):
     """
     Processes a given LAZ file, creating individual bounding boxes around each point defined in the provided DataFrame. 
     It then extracts points within each bounding box and writes them to new LAZ files.
@@ -100,6 +100,9 @@ def create_bounding_box_laz(input_laz_file, base_filename, poles_df, box_size=1)
     with laspy.open(input_laz_file) as file:
         las = file.read()
 
+        columns = ['Grond X', 'Grond Y', 'Grond Z', 'Top X', 'Top Y', 'Top Z']
+        poles_df[columns] = poles_df[columns].apply(pd.to_numeric, errors='coerce')
+
         for index, row in poles_df.iterrows():
             # Define the bounding box for each point
             bounding_box = {
@@ -107,7 +110,7 @@ def create_bounding_box_laz(input_laz_file, base_filename, poles_df, box_size=1)
                 'max_x': row['Top X'] + box_size,
                 'min_y': row['Grond Y'] - box_size,
                 'max_y': row['Top Y'] + box_size,
-                'min_z': row['Grond Z'] - box_size + 2,
+                'min_z': row['Grond Z'] - box_size + 6,
                 'max_z': row['Top Z'] + box_size
             }
 
@@ -147,14 +150,18 @@ def main(directory, output_base_filename, sheet):
             input_laz_file = os.path.join(directory, filename)
             base_x, base_y = extract_numbers_from_string(filename)
             filtered_data = filter_pole_coordinates(sheet, base_x, base_y)
-
+            
             # Process each file
             create_bounding_box_laz(input_laz_file, output_base_filename, filtered_data)
 
 if __name__ == "__main__":
-    directory = 'data/laz_pc_data'
-    output_base_filename = 'data/bb_extracted_data_unlabelled/bb'
-    sheet = 'data/sheets/fused_coordinates_poles.xlsx'
-    main(directory, output_base_filename, sheet)
+    parser = argparse.ArgumentParser(description='Bounding Box Extraction from LiDAR Data.')
+    parser.add_argument('--in_folder', metavar='path', action='store',
+                        type=str, default = 'data/laz_pc_data', required=True)
+    parser.add_argument('--out_folder', metavar='path', action='store',
+                        type=str, default = 'data/laz_bb')
+    parser.add_argument('--coordinates_csv', metavar='path', action='store', type=str, default = 'data/sheets/processed_sheets/clustered_amsterdam.csv')
+    args = parser.parse_args()
+    main(args.in_folder, args.out_folder, args.coordinates_csv)
     
 

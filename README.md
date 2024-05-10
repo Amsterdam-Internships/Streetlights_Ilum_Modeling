@@ -1,5 +1,6 @@
-# PC_BB: Pole Detection in Point Clouds
-Welcome to the PC_BB repository! This project is part of an internship with the City of Amsterdam, with a primary goal of modelling light illumination in a 3D model of Amsterdam!
+# RandLA-Net: Efficient Semantic Segmentation of Large-Scale Point Clouds
+
+This repository contains a Tensorflow implementation of [RandLA-Net](http://arxiv.org/abs/1911.11236) with small improvements to the [original implementation](https://github.com/QingyongHu/RandLA-Net). This repository only supports the 3D Point Cloud licensed to City of Amsterdam.
 
 ## Getting Started with Python and Blender API
 
@@ -12,10 +13,36 @@ Welcome to the PC_BB repository! This project is part of an internship with the 
    - Find the `blender.exe` executable, usually found at a path similar to `C://...//Blender Foundation\Blender 4.0`.
    - Add this path to your system's PATH environment variable for easy access.
 
-### Collada File Preparation
-3. **Download Collada Cube**:
-   - Visit [3D Amsterdam](https://3d.amsterdam.nl/) and download a Collada cube.
-   - Move the downloaded cube into the `dataset/dae` folder in your project directory.
+### Processing of Laz Point Cloud
+3. **Configure the addon**
+
+First, you'll need to install laspy[lazrs]. Open Blender, go to the Scripting workspace, and in the Interactive Console type:
+```
+import sys; sys.executable
+```
+
+This will tell you where the python interpreter is that Blender is using.  For example: '/usr/bin/python3.10'
+
+Now, open a Terminal and install laspy by replacing the path to the interpreter to the one you just discovered above:
+
+Linux:
+```
+/replace/with/path/to/python -m pip install laspy[lazrs]
+```
+Note: You may need to use sudo on Linux if your OS requires it.
+
+Windows (replace the path with the correct version):
+```
+"C:\Program Files\Blender Foundation\Blender x.x\x.x\python\bin\python.exe" -m pip install laspy[lazrs]
+```
+
+Now, in Blender, navigate to Edit > Preferences, and click on Add-ons tab. Click "Install", and select this file. 
+```
+utils\addons_blender\__init__.py
+```
+
+Finally, activate the addon. You can now import laz/las files to Blender ! 
+
 
 ### Installing Pandas in Blender
 4. **Integrate Pandas with Blender**:
@@ -35,40 +62,116 @@ Welcome to the PC_BB repository! This project is part of an internship with the 
 
 ### Running the Processing Script
 5. **Execute Processing Script**:
-   - Now you can run the `blender_functions/processing_blender.py` script.
+   - Now you are able to run the `blender_functions/processing_blender.py` script, but first process your point cloud ! We'll get to that later.
    - Open a command prompt and run : 
      ```bash
      blender --background --python blender_functions/processing_blender.py
      ```
    - Ensure all dependencies and paths are correctly set for a smooth execution.
 
-## Getting Started with Intrinsic Image Decomposition on Point Cloud
+## Environment set-up
+This code has been tested with Python 3.7, Tensorflow 1.15.5, CUDA 11.2 on Ubuntu 18.04.
 
-1. **Model Selection for Fine-Tuning**
-   - Begin by choosing a model to fine-tune from the `pretrained_models` folder.
-   - You can then fine-tune this model using three distinct loss functions, each controlled by its coefficient.
-   - Configure the training settings using the `train.py` script. Adjust the loss coefficients and other parameters according to your needs. Here's an example command to get started:
+1. Clone this repository
 
-     ```bash
-     python train.py --include_loss_alb_smoothness True \
-                     --loss_alb_smoothness_coeff $loss_alb_coeff \
-                     --include_chroma_weights True \
-                     --include_loss_shading True --loss_shading_coeff $loss_shd_coeff \
-                     --include_loss_lid True --loss_lid_coeff $loss_lid_coeff \
-                     --lr 0.00000001 --wandb True --epochs 300
-     ```
+  ```sh
+  git clone https://github.com/Amsterdam-AI-Team/RandLA-Net.git
+  ```
 
-2. **Testing the Trained Model**
-   - Once training is complete, the model will be saved in the `pre_trained_models` directory.
-   - To test the model, use the `test.py` script. Make sure to specify the correct paths for the test point cloud and normal maps.
-   - Below is an example command for testing:
+2. Install all Python dependencies
 
-     ```bash
-     python test.py --path_to_model "$model_file" \
-                    --path_to_test_pc './Data/pcd/pcd_split_clean_0.5_test/' \
-                    --path_to_test_nm './Data/gts/nm_split_clean_0.5_test/'
-     ```
+  ```sh
+  conda create -n <name_env> python = 3.8
+  conda activate <name_env>
+  cd IID_Ilum_Mod
+  pip install -r requirements.txt
+  ```
+
+3. Build RandLA-Net
+
+  ```sh
+  cd utils
+  sh compile_op.sh
+  mv nearest_neighbors/lib/python/KNN_NanoFLANN-*.egg/* nearest_neighbors/lib/python/.
+  ```
+
+## Point Cloud Processing
+### Street-level dataset by Cyclomedia
+The City of Amsterdam acquired a street-level 3D Point Cloud encompassing the entire municipal area. The point cloud, provided by Cyclomedia Technology, is recorded using both a panoramic image capturing device together with a Velodyne HDL-32 LiDAR sensor, resulting in a point cloud that includes not only <x, y, z> coordinates, but also RGB and intensity data. The 3D Point Cloud is licensed, but it may become open in the future. An example tile is available [here](https://github.com/Amsterdam-AI-Team/Urban_PointCloud_Processing/tree/main/datasets/pointcloud).
+
+### Usage
+
+This repository is specifically designed for processing 50x50 tiles from the Cyclomedia street-level 3D Point Cloud Dataset. A crucial step in preprocessing involves downsampling the original point clouds, which can contain over 1 million points. This reduction is necessary to make the data manageable for subsequent 3D Semantic Segmentation.
+
+#### Preliminary Data Preparation
+
+Before further processing, we utilize existing research that has identified the coordinates of streetlights in the City of Amsterdam. These coordinates are available in the following CSV file:
+
+- `data/sheets/processed_sheets/clustered_amsterdam.csv`
+
+#### Running the Preprocessing Script
+
+To perform the preprocessing operations, execute the `bb_extraction.py` script. This script extracts and processes bounding boxes from the point cloud data. Use the following command to run the script:
+
+```sh
+python3 bb_extraction.py --in_folder 'data/laz_pc_data' --out_folder 'data/laz_bb'
+```
+
+### Inference
+
+Now that the bounding boxes are ready, we can utilize a pre-trained model to predict the light source coordinates for the specific streetlights. Follow these steps to complete the inference process:
+
+#### Preprocessing Bounding Boxes
+
+Start by preprocessing the new bounding boxes to prepare them for processing with RandlaNet. Execute the following command to begin:
+
+```sh
+python3 prepare.py --mode 'train' --in_folder 'data/laz_bb' --out_folder 'processed/laz_bb'
+```
+
+This command sets the mode to train, reads bounding box data from data/laz_bb, and outputs the processed data to processed/laz_bb.
+
+#### Binary Segmentation
+
+Proceed with binary segmentation to identify the Light Source component of each streetlight using the pre-trained model. Run the command below to conduct the segmentation:
+
+```sh
+python3 main.py --mode 'test' --in_folder 'processed/laz_bb' --out_folder 'predicted/' --snap_folder 'model/RGBI/Log_2024-05-07_08-46-07/snapshots'
+```
+
+This command runs in test mode, processes files from processed/laz_bb, saves the predictions in predicted/, and utilizes snapshots from trained_model/RGB_I/snapshots.
+
+#### Merging Predictions with Input Point Cloud
+
+Finally, merge the prediction results with the original point cloud data. This step integrates the segmentation results back into the spatial context of the original data, providing a comprehensive view of the outcomes:
+
+```sh
+python3 merge.py --cloud_folder 'data/laz_pc_data' --pred_folder 'predicted/laz_bb' --out_folder 'merged'
+```
+
+This command merges prediction files from predicted/laz_bb with the point cloud data from data/laz_pc_data, outputting the merged data to merged.
+
+### Arguments
+To enable the use of RGB, intensity or normals during training or inference, you can use the following flags: `--use_rgb`, `--use_intensity`. You can define the configuration for a specific dataset using the flag `--config_file`. For example we can use `--config_file 'Streetligths3D'`. To directly perform inference on the laz files, you need to use the `--no_prepare` flag when running `main.py`.
 
 
-## Acknowledgements
-Special thanks to the City of Amsterdam for their support and collaboration in this internship project.
+## Clustering
+Now, you should run the clustering.py script to create a csv files with the positions of the light sources listed for each streetlight processed.
+
+```sh
+python clustering.py --directory merged --output /path/to/output.csv --label 2
+```
+
+## Visual Representation in Blender
+Now that the light sources have been identified and their coordinates extracted, it is possible to model them in Blender. As it is a script run through blender, the variable path need to be changed directly in processing_blender.py
+Once it is done run in command line : 
+
+```sh
+blender --background --python .\processing_blender.py
+```
+
+In the folder blend_files, you should have now blender file containing your visual representation ! 
+
+
+
+

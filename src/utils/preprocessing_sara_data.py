@@ -1,12 +1,3 @@
-import os
-import numpy as np
-import open3d as o3d
-import laspy 
-
-from pyntcloud import PyntCloud
-from plyfile import PlyData, PlyElement
-
-
 """
 Point Cloud Processing Toolkit
 
@@ -39,6 +30,13 @@ Note:
 This toolkit is designed for batch processing of files within directories. It is advisable to backup your data before performing batch operations. The toolkit is easily extendable for more custom point cloud processing functionalities.
 """
 
+import os
+import numpy as np
+import open3d as o3d
+import laspy 
+
+from pyntcloud import PyntCloud
+from plyfile import PlyData, PlyElement
 
 def delete_files_without_label_2(directory):
     """

@@ -213,6 +213,7 @@ log/jobs_outputs/
 wandb/
 
 data/
+model/
 
 /dataset/full_pc
 /dataset/bb_pc
