@@ -1,7 +1,7 @@
 # Adapt to your needs. This version includes typical data files we work with, along with the default python template.
 
 # Text / html
-*.csv
+# *.csv
 # *.txt
 *.html
 
@@ -207,12 +207,18 @@ cython_debug/
 *.amltmp
 *.ipynb_aml_checkpoints
 
-Data/
 test_results/
 log/jobs_outputs/
 wandb/
 
-data/
+data/datasets_for_models
+data/images
+data/missing_bb_clus
+data/points_clouds_laz
+data/point_clouds_laz_ds
+data/points_clouds_ply
+data/sara_pole
+data/test
 model/
 
 /dataset/full_pc
