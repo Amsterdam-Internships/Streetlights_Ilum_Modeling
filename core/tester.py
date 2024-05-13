@@ -80,7 +80,7 @@ class ModelTester:
                        model.inputs['cloud_inds'],
                        )
 
-                stacked_probs, stacked_labels, point_idx, cloud_idx =\
+                stacked_probs, _, point_idx, cloud_idx =\
                     self.sess.run(ops, {model.is_training: False})
                 stacked_probs = np.reshape(stacked_probs,
                                            [model.config.test_batch_size,

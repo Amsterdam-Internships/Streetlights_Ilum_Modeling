@@ -220,7 +220,9 @@ if __name__ == '__main__':
 
     if args.config_file == 'AHNTrees':
         from configs.config_AHNTrees import ConfigAHNTrees as cfg
-    else:
+    elif args.config_file == 'Amsterdam3D':
         from configs.config_Amsterdam3D import ConfigAmsterdam3D as cfg
+    elif args.config_file == 'Streetlights3D':
+        from configs.config_Streetlights3D import ConfigStreetlights3D as cfg
 
     run()

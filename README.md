@@ -75,16 +75,13 @@ This code has been tested with Python 3.7, Tensorflow 1.15.5, CUDA 11.2 on Ubunt
 1. Clone this repository
 
   ```sh
-  git clone https://github.com/Amsterdam-AI-Team/RandLA-Net.git
+  git clone https://github.com/Amsterdam-Internships/IID_Ilum_Mod.git
   ```
 
 2. Install all Python dependencies
 
   ```sh
-  conda create -n <name_env> python = 3.8
-  conda activate <name_env>
-  cd IID_Ilum_Mod
-  pip install -r requirements.txt
+ conda env create -f environment.yaml
   ```
 
 3. Build RandLA-Net
@@ -114,29 +111,19 @@ Before further processing, we utilize existing research that has identified the 
 To perform the preprocessing operations, execute the `bb_extraction.py` script. This script extracts and processes bounding boxes from the point cloud data. Use the following command to run the script:
 
 ```sh
-python3 bb_extraction.py --in_folder 'data/laz_pc_data' --out_folder 'data/laz_bb'
+python bb_extraction.py --in_folder 'data/laz_pc_data' --out_folder 'data/laz_bb'
 ```
 
 ### Inference
 
 Now that the bounding boxes are ready, we can utilize a pre-trained model to predict the light source coordinates for the specific streetlights. Follow these steps to complete the inference process:
 
-#### Preprocessing Bounding Boxes
-
-Start by preprocessing the new bounding boxes to prepare them for processing with RandlaNet. Execute the following command to begin:
-
-```sh
-python3 prepare.py --mode 'train' --in_folder 'data/laz_bb' --out_folder 'processed/laz_bb'
-```
-
-This command sets the mode to train, reads bounding box data from data/laz_bb, and outputs the processed data to processed/laz_bb.
-
 #### Binary Segmentation
 
 Proceed with binary segmentation to identify the Light Source component of each streetlight using the pre-trained model. Run the command below to conduct the segmentation:
 
 ```sh
-python3 main.py --mode 'test' --in_folder 'processed/laz_bb' --out_folder 'predicted/' --snap_folder 'model/RGBI/Log_2024-05-07_08-46-07/snapshots'
+python3 main.py --mode 'test' --in_folder 'processed/laz_bb' --out_folder 'predicted/' --snap_folder 'model/RGBI/Log_2024-05-07_08-46-07/snapshots' --no_prepare --use_rgb --use_intensity
 ```
 
 This command runs in test mode, processes files from processed/laz_bb, saves the predictions in predicted/, and utilizes snapshots from trained_model/RGB_I/snapshots.
@@ -159,11 +146,14 @@ To enable the use of RGB, intensity or normals during training or inference, you
 Now, you should run the clustering.py script to create a csv files with the positions of the light sources listed for each streetlight processed.
 
 ```sh
-python clustering.py --directory merged --output /path/to/output.csv --label 2
+python clustering.py --directory merged --output data/sheets/processed_sheets/clustered_amsterdam.csv --label 2
 ```
 
 ## Visual Representation in Blender
-Now that the light sources have been identified and their coordinates extracted, it is possible to model them in Blender. As it is a script run through blender, the variable path need to be changed directly in processing_blender.py
+Now that the light sources have been identified and their coordinates extracted, it is possible to model them in Blender.
+This script creates a blend file for every laz point cloud present in the indicated folder under the name 'laz_folder_path'. It will add artificial lights thanks to blender to the point cloud in the positions of the light sources detected with the segmentation and further clustered. 
+
+As it is a script run through blender, the variable path need to be changed directly in processing_blender.py
 Once it is done run in command line : 
 
 ```sh

@@ -221,7 +221,7 @@ def adjust_cluster_coordinates(df, center):
 def main():
     # Set directory paths
     laz_folder_path = 'data/points_clouds_laz_ds'
-    save_directory = 'blend_files'
+    save_directory = 'data/blend_files'
     clusters_file_path = 'data/sheets/clusters_streetlights/cluster_full.csv'
 
     # Ensure the save directory exists

@@ -1,7 +1,11 @@
 from os.path import join
 import tensorflow as tf
+tf.set_random_seed(42)
+
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 import numpy as np
+np.random.seed(42)
+
 import time
 import pickle
 import argparse
@@ -11,7 +15,7 @@ import sys
 from sklearn.neighbors import KDTree
 import laspy
 import pandas as pd
-
+import os 
 from core.models.RandLANet import Network
 from core.tester import ModelTester
 from core.helpers.helper_tool import DataProcessing as DP
@@ -69,7 +73,10 @@ class Amsterdam3D:
                 except:
                     print('An exception occurred, no normal values. Please run prepare.py first with the --use_normals flag.')
                     raise
-            return np.vstack(sub_features).T
+            if sub_features:
+                return np.vstack(sub_features).T
+            else:
+                return None
 
     def calculate_normals(points_xyz):
         object_pcd = o3d.geometry.PointCloud()
@@ -126,44 +133,54 @@ class Amsterdam3D:
         for i, file_path in enumerate(self.all_files):
             t0 = time.time()
             cloud_name = file_path.split('/')[-1][:-4]
-
             if self.mode == 'test':
                 cloud_split = 'test'
             elif cloud_name in self.val_files:
                 cloud_split = 'validation'
+                print("ok :", cloud_name)
             else:
                 cloud_split = 'training'
 
+            # Check if the mode is set to 'test' and no data preparation is requested.
             if self.mode == 'test' and args.no_prepare:
+                # Read the .las or .laz file containing the point cloud data.
                 data = laspy.read(file_path)
+                number_of_points = len(data.x)
+                # Load points from the file and apply offset adjustments, then convert to a floating-point format.
+                # This structure, xyz, contains the coordinates of each point in the point cloud.
+                xyz = (np.vstack((data.x - cfg.x_offset, data.y - cfg.y_offset, data.z)).T.astype(np.float32))
 
-                # Load points
-                xyz = (np.vstack((data.x - cfg.x_offset, data.y - cfg.y_offset,
-                                 data.z)).T.astype(np.float32))
-
+                # Extract raw features from the point cloud data, which could include intensity, color, or other attributes.
                 features = self.get_raw_features(data)
 
-                labels = data.label
+                # Load labels from the point cloud data, which typically represent the classification of each point.
+                
                 if cfg.inference_on_labels:
+                    labels = data.label
+                    # Initialize a boolean mask for filtering points based on specified labels for inference.
                     mask = np.zeros((len(labels),), dtype=bool)
+                    # Update the mask to include points whose labels are in the specified inference labels.
                     for inference_label in cfg.inference_on_labels:
                         mask = mask | (labels == inference_label)
                 else:
-                    # Numpy array with all True
-                    mask = np.ones((len(labels),), dtype=bool)
+                    # If no specific labels are targeted for inference, use all points.
+                    mask = np.ones((number_of_points,), dtype=bool)
 
-                sub_xyz, sub_features = DP.grid_sub_sampling(
-                                            xyz[mask], features[mask],
-                                            grid_size=cfg.sub_grid_size)
+                # Subsample the point cloud based on the mask and configuration grid size,
+                # reducing the number of points to process and focusing on areas of interest.
+                sub_xyz, sub_features = DP.grid_sub_sampling(xyz[mask], features[mask], grid_size=cfg.sub_grid_size)
 
-                # Generate search tree
+                # Create a KDTree for the subsampled points, which enables efficient spatial queries.
                 search_tree = KDTree(sub_xyz)
 
-                # Test projection
+                # Perform a query on the KDTree to get the nearest subsampled point index for each point in the masked set.
+                # This is used to relate each original point to its corresponding point in the subsampled set.
                 proj_idx = np.squeeze(search_tree.query(xyz[mask], return_distance=False))
                 proj_idx = proj_idx.astype(np.int32)
 
+                # Collect the projection indices for further processing or evaluation.
                 self.test_proj += [proj_idx]
+
             else:
                 npz_file = join(in_folder, '{:s}.npz'.format(cloud_name))
 
@@ -182,6 +199,10 @@ class Amsterdam3D:
                 sub_labels = data['label'].squeeze()
                 self.input_labels[cloud_split] += [sub_labels]
 
+            if self.mode == 'evaluate':
+                sub_labels = data['label'].squeeze()
+                self.input_labels[cloud_split] += [sub_labels]
+
             # Test projection
             if self.mode == 'test' and args.no_prepare == False:
                 # Validation projection and labels
@@ -192,9 +213,12 @@ class Amsterdam3D:
 
             self.input_trees[cloud_split] += [search_tree]
             self.input_features[cloud_split] += [sub_features]
-
-            size = sub_features.shape[0] * 4 * 7 * 1e-6
-            print(f'{file_path} {size:.1f} MB loaded in {time.time() - t0:.1f}s')
+            if sub_features is not None:
+                size = sub_features.shape[0] * 4 * 7 * 1e-6
+                print(f'{file_path} {size:.1f} MB loaded in {time.time() - t0:.1f}s')
+            else :
+                size = None
+                print(f'{file_path} {size} MB loaded in {time.time() - t0:.1f}s')
 
     # Generate the input data flow
     def get_batch_gen(self, split):
@@ -254,13 +278,17 @@ class Amsterdam3D:
                 # Get corresponding points and colors based on the index
                 queried_pc_xyz = points[queried_idx]
                 queried_pc_xyz = queried_pc_xyz - pick_point
-                queried_pc_colors =\
-                    self.input_features[split][cloud_idx][queried_idx]
+
+                # Check if self.input_features[split][cloud_idx] is None and handle accordingly
+                if self.input_features[split][cloud_idx] is not None:
+                    queried_pc_colors = self.input_features[split][cloud_idx][queried_idx]
+                else:
+                    # If there are no additional features, initialize queried_pc_colors as an empty array
+                    queried_pc_colors = np.zeros((queried_pc_xyz.shape[0], 0))
                 if split == 'test':
                     queried_pc_labels = np.zeros(queried_pc_xyz.shape[0])
                 else:
-                    queried_pc_labels =\
-                        self.input_labels[split][cloud_idx][queried_idx]
+                    queried_pc_labels = self.input_labels[split][cloud_idx][queried_idx]
 
                 # Update the possibility of the selected points
                 dists = np.sum(np.square(
@@ -358,25 +386,78 @@ class Amsterdam3D:
         self.train_init_op = iter.make_initializer(self.batch_train_data)
         self.val_init_op = iter.make_initializer(self.batch_val_data)
 
-    def init_input_pipeline_test(self):
-        print('Initiating input pipelines for testing')
+    def init_input_pipeline_eval(self):
+        print('Initiating input pipelines for train and validation')
         cfg.ignored_label_inds = [self.label_to_idx[ign_label]
                                   for ign_label in self.ignored_labels]
-        gen_function_test, gen_types, gen_shapes = self.get_batch_gen('test')
-        self.test_data = tf.data.Dataset.from_generator(
-                                    gen_function_test, gen_types, gen_shapes)
+        # gen_function, gen_types, gen_shapes = self.get_batch_gen('training')
+        gen_function_val, gen_types, gen_shapes = self.get_batch_gen('validation')
+        # self.train_data = tf.data.Dataset.from_generator(
+        #                             gen_function, gen_types, gen_shapes)
+        self.val_data = tf.data.Dataset.from_generator(
+                                    gen_function_val, gen_types, gen_shapes)
 
-        self.batch_test_data = self.test_data.batch(cfg.test_batch_size)
+        # self.batch_train_data = self.train_data.batch(cfg.batch_size)
+        self.batch_val_data = self.val_data.batch(cfg.val_batch_size)
         map_func = self.get_tf_mapping2()
 
-        self.batch_test_data = self.batch_test_data.map(map_func=map_func)
-        self.batch_test_data = self.batch_test_data.prefetch(cfg.test_batch_size)
+        # self.batch_train_data = self.batch_train_data.map(map_func=map_func)
+        self.batch_val_data = self.batch_val_data.map(map_func=map_func)
+
+        # self.batch_train_data = self.batch_train_data.prefetch(cfg.batch_size)
+        self.batch_val_data = self.batch_val_data.prefetch(cfg.val_batch_size)
 
         iter = tf.data.Iterator.from_structure(
-                                        self.batch_test_data.output_types,
-                                        self.batch_test_data.output_shapes)
+                                        self.batch_val_data.output_types,
+                                        self.batch_val_data.output_shapes)
         self.flat_inputs = iter.get_next()
-        self.test_init_op = iter.make_initializer(self.batch_test_data)
+        # self.train_init_op = iter.make_initializer(self.batch_train_data)
+        self.val_init_op = iter.make_initializer(self.batch_val_data)
+
+    def init_input_pipeline_test(self):
+            """
+            Initializes the input pipeline for testing the model.
+
+            This method sets up the TensorFlow data pipeline for the test dataset by creating a generator-based
+            TensorFlow Dataset object. It batches the data, applies a mapping function for preprocessing,
+            and prefetches batches to optimize performance during testing.
+
+            The method leverages configuration settings to adjust batch sizes and uses specific labels
+            to be ignored during testing as defined in the configuration.
+            """
+
+            # Log the initiation of the test data pipeline
+            print('Initiating input pipelines for testing')
+
+            # Filter out ignored labels based on configuration
+            cfg.ignored_label_inds = [self.label_to_idx[ign_label]
+                                    for ign_label in self.ignored_labels]
+
+            # Generate the TensorFlow dataset for testing
+            gen_function_test, gen_types, gen_shapes = self.get_batch_gen('test')
+            self.test_data = tf.data.Dataset.from_generator(
+                                        gen_function_test, gen_types, gen_shapes)
+
+            # Batch the dataset according to the test batch size specified in the configuration
+            self.batch_test_data = self.test_data.batch(cfg.test_batch_size)
+
+            # Apply a mapping function to the data for any required preprocessing
+            map_func = self.get_tf_mapping2()  # Assuming this function handles data normalization, augmentation etc.
+            self.batch_test_data = self.batch_test_data.map(map_func=map_func)
+
+            # Prefetch data to improve pipeline performance by overlapping the preprocessing of data with model execution
+            self.batch_test_data = self.batch_test_data.prefetch(cfg.test_batch_size)
+
+            # Create an iterator over the batched dataset
+            iter = tf.data.Iterator.from_structure(
+                                            self.batch_test_data.output_types,
+                                            self.batch_test_data.output_shapes)
+            self.flat_inputs = iter.get_next()  # Retrieve the next batch of data from the iterator
+
+            # Create an operation to initialize the test data iterator
+            # This operation will be run in the session to restart the iterator when needed
+            self.test_init_op = iter.make_initializer(self.batch_test_data)
+
 
 
 def train(in_folder, in_files):
@@ -386,11 +467,44 @@ def train(in_folder, in_files):
     model = Network(dataset, cfg, args.resume, args.resume_path)
     model.train(dataset)
 
+def evaluate(in_folder, in_files):
+    dataset = Amsterdam3D(in_folder, in_files)
+    dataset.init_input_pipeline_train()
+
+    model = Network(dataset, cfg)
+
+    if args.snap_folder is not None:
+        snap_steps = [int(f[:-5].split('-')[-1])
+                      for f in os.listdir(args.snap_folder) if f[-5:] == '.meta']
+        chosen_step = np.sort(snap_steps)[-1]
+        chosen_snap = os.path.join(args.snap_folder, 'snap-{:d}'.format(chosen_step))
+    else:
+        logs = np.sort([os.path.join('results', f)
+                        for f in os.listdir('results') if f.startswith('Log')])
+        chosen_folder = logs[-1]
+        snap_path = join(chosen_folder, 'snapshots')
+        snap_steps = [int(f[:-5].split('-')[-1])
+                      for f in os.listdir(snap_path) if f[-5:] == '.meta']
+        chosen_step = np.sort(snap_steps)[-1]
+        chosen_snap = os.path.join(snap_path, 'snap-{:d}'.format(chosen_step))
+    # print(chosen_snap)
+    with tf.Session() as sess:
+        # If `my_vars` is not specified, Saver will restore all variables in the graph
+        saver = tf.train.Saver()
+
+        # Restore the model from the chosen snapshot
+        saver.restore(sess, chosen_snap)
+
+        # Assign the session to your model if it's required
+        model.sess = sess
+
+        # Now you can evaluate your model
+        model.evaluate(dataset)
+
 
 def test(in_folder, in_files):
     dataset = Amsterdam3D(in_folder, in_files)
     dataset.init_input_pipeline_test()
-
     cfg.saving = False
     model = Network(dataset, cfg)
     if args.snap_folder is not None:
@@ -398,6 +512,7 @@ def test(in_folder, in_files):
                       for f in os.listdir(args.snap_folder) if f[-5:] == '.meta']
         chosen_step = np.sort(snap_steps)[-1]
         chosen_snap = os.path.join(args.snap_folder, 'snap-{:d}'.format(chosen_step))
+        print(chosen_snap)
     else:
         logs = np.sort([os.path.join('results', f)
                         for f in os.listdir('results') if f.startswith('Log')])
@@ -433,8 +548,12 @@ if __name__ == '__main__':
 
     if args.config_file == 'AHNTrees':
         from configs.config_AHNTrees import ConfigAHNTrees as cfg
-    else:
+    elif args.config_file == 'Amsterdam3D':
         from configs.config_Amsterdam3D import ConfigAmsterdam3D as cfg
+    elif args.config_file == 'Streetlights3D':
+        from configs.config_Streetlights3D import ConfigStreetlights3D as cfg
+    elif args.config_file == 'Streetlights3D_val':
+        from configs.config_Streetlights3D_val import ConfigStreetlights3D_val as cfg
 
     if not args.use_rgb:
         print('RGB values are not used in this configuration.')
@@ -443,25 +562,40 @@ if __name__ == '__main__':
     if not args.use_normals:
         print('Normal values are not used in this configuration.')
 
-    if not args.use_rgb and not args.use_intensity and not args.use_normals:
-        # TODO: this is a temp fix
-        print('At least select one feature: --use_rgb --use_intensity --use_normals')
-        sys.exit(1)
+    # if not args.use_rgb and not args.use_intensity and not args.use_normals:
+    #     # TODO: this is a temp fix
+    #     print('At least select one feature: --use_rgb --use_intensity --use_normals')
+    #     sys.exit(1)
 
     os.environ['CUDA_DEVICE_ORDER'] = 'PCI_BUS_ID'
     os.environ['CUDA_VISIBLE_DEVICES'] = '0'
     os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
     if args.mode == 'train':
+        print("mode train")
         in_folder = join(args.in_folder, f'input_{cfg.sub_grid_size:.3f}')
         if not os.path.isdir(in_folder):
             print(f'The input folder {in_folder} does not exist. Aborting...')
             sys.exit(1)
 
         in_files = glob.glob(join(in_folder, '*.npz'))
-
+        train_run_id = time.strftime('%Y-%m-%d_%H-%M-%S')
+        train_sum_dir = os.path.join('tf_train_logs', train_run_id)
+        os.makedirs(train_sum_dir, exist_ok=True)
+        cfg.train_sum_dir = train_sum_dir
         train(in_folder, in_files)
+
+    if args.mode == 'evaluate':
+        print("mode evaluate")
+        in_folder = join(args.in_folder, f'input_{cfg.sub_grid_size:.3f}')
+        if not os.path.isdir(in_folder):
+            print(f'The input folder {in_folder} does not exist. Aborting...')
+            sys.exit(1)
+        in_files = glob.glob(join(in_folder, '*.npz'))
+        evaluate(in_folder, in_files)
+
     elif args.mode == 'test':
+        inf_path = 'predict_res.csv'
         in_folder = args.in_folder
         if not os.path.isdir(in_folder):
             print(f'The input folder {in_folder} does not exist. Aborting...')
@@ -488,25 +622,21 @@ if __name__ == '__main__':
                 all_files = glob.glob(join(in_folder, '*.laz'))
             else:
                 all_files = glob.glob(join(in_folder, '*.npz'))
-
             # Create a dataframe
             df = pd.DataFrame({'in_files':all_files})
             df['processed'] = False
             df.to_csv(inference_files, index=False)
-
         # Split the dataframe every 10 rows
-        grps = df.groupby(df.index // 10)
-
+        grps = df.groupby(df.index // 5)
         for _, dfg in grps:
             in_files = dfg['in_files'].tolist()
-
             # Init and start the inference
             print(f'Starting inference for {len(in_files)} files...')
             test(in_folder, in_files)
-
+            tf.reset_default_graph() # added
             # Save processed once for the resume option
             df.loc[dfg.index, 'processed'] = True
-            df.to_csv(inference_files, index=False)
+        df.to_csv(inf_path, index=False)
 
     else:
         print('Mode not implemented. Aborting...')

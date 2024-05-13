@@ -28,12 +28,16 @@ if __name__ == '__main__':
 
         cloud_prefix = 'tree'
         pred_prefix = 'predtree'
-    else:
+    elif args.config_file == 'Amsterdam3D':
         from configs.config_Amsterdam3D import ConfigAmsterdam3D as cfg
 
         cloud_prefix = 'filtered'
         pred_prefix = 'predfiltered'
+    elif args.config_file == 'Streetlights3D':
+        from configs.config_Streetlights3D import ConfigStreetlights3D as cfg
 
+        cloud_prefix = 'bb'
+        pred_prefix = 'predbb'
     helper.merge_cloud_pred_folder(args.cloud_folder, args.pred_folder,
                                    cloud_prefix, pred_prefix,
                                    cfg.inference_on_labels,
