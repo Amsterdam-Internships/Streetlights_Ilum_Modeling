@@ -1,4 +1,4 @@
-# RandLA-Net: Efficient Semantic Segmentation of Large-Scale Point Clouds
+# Streetlight Illumination Modelling on 3D-Derived Lidar Point Cloud
 
 This repository contains a Tensorflow implementation of [RandLA-Net](http://arxiv.org/abs/1911.11236) with small improvements to the [original implementation](https://github.com/QingyongHu/RandLA-Net). This repository only supports the 3D Point Cloud licensed to City of Amsterdam.
 

@@ -1,10 +1,10 @@
 # Adapt to your needs. This version includes typical data files we work with, along with the default python template.
 
 # Text / html
-# *.csv
+*.csv
 # *.txt
 *.html
-
+.blend
 # Geo data
 *.gml
 *.shp
@@ -219,6 +219,7 @@ data/point_clouds_laz_ds
 data/points_clouds_ply
 data/sara_pole
 data/test
+data/blend_files
 model/
 
 /dataset/full_pc
