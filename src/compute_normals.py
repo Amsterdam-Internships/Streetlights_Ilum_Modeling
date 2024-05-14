@@ -4,8 +4,8 @@ import numpy as np
 import open3d as o3d
 
 # Define input and output directories
-input_dir = "data/datasets_for_models/new_full_dataset/train/"
-output_dir = "data/datasets_for_models/new_full_dataset_with_normals/train/"
+input_dir = "data/train_val"
+output_dir = "data/train_val_normals"
 
 # Ensure the output directory exists
 os.makedirs(output_dir, exist_ok=True)

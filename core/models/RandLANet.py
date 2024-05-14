@@ -5,6 +5,7 @@ import tensorflow as tf
 import numpy as np
 import time
 import sys
+import os
 
 BASE_DIR = dirname(abspath(__file__))
 sys.path.append(BASE_DIR)

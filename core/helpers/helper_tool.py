@@ -77,7 +77,7 @@ class DataProcessing:
     def get_class_weights(dataset_name, class_weights):
         # pre-calculate the number of points in each category
         num_per_class = []
-        if dataset_name == 'Amsterdam3D' or dataset_name == 'AHNTrees':
+        if dataset_name == 'Amsterdam3D' or dataset_name == 'AHNTrees' or dataset_name == 'Streetlights3D' or dataset_name == 'Streetlights3D_val':
             num_per_class = np.array(class_weights)
         weight = num_per_class / float(sum(num_per_class))
         ce_label_weight = 1 / (weight + 0.02)

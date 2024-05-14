@@ -2,9 +2,10 @@
 
 # Text / html
 *.csv
+*.pkl
 # *.txt
 *.html
-.blend
+.*blend
 # Geo data
 *.gml
 *.shp
