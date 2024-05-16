@@ -94,7 +94,9 @@ coverage.xml
 .hypothesis/
 .pytest_cache/
 cover/
-
+results/
+train_logs/log*
+tf_train_logs/
 # Translations
 *.mo
 *.pot
