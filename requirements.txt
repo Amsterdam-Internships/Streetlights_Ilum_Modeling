@@ -1,0 +1,11 @@
+lazrs==0.3.1
+laspy==2.0.2
+open3d_python==0.7.0.0
+pandas==0.25.3
+scikit-learn==0.24.2
+numpy==1.18.5
+scipy==1.4.1
+cython==0.29.15
+tensorflow-gpu==1.15.5
+tqdm==4.64.1
+protobuf==3.20.*
