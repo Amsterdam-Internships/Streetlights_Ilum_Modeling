@@ -144,7 +144,6 @@ def main(directory, output_base_filename, sheet):
     directory (str): Directory containing the original .laz files to process.
     output_base_filename (str): Base path and filename for the output .laz files.
     """
-
     for filename in os.listdir(directory):
         if filename.endswith(".laz"):
             input_laz_file = os.path.join(directory, filename)
@@ -162,6 +161,8 @@ if __name__ == "__main__":
                         type=str, default = 'data/laz_bb')
     parser.add_argument('--coordinates_csv', metavar='path', action='store', type=str, default = 'data/sheets/processed_sheets/clustered_amsterdam.csv')
     args = parser.parse_args()
+    if os.path.isdir(args.out_folder[-2]) == False:
+        os.mkdir(args.out_folder[-2])
     main(args.in_folder, args.out_folder, args.coordinates_csv)
     
 

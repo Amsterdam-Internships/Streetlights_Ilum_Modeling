@@ -1,6 +1,6 @@
 from os.path import join
 import tensorflow as tf
-tf.set_random_seed(42)
+# tf.set_random_seed(42)
 
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 import numpy as np

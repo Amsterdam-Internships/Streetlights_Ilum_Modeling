@@ -111,8 +111,19 @@ Before further processing, we utilize existing research that has identified the 
 To perform the preprocessing operations, execute the `bb_extraction.py` script. This script extracts and processes bounding boxes from the point cloud data. Use the following command to run the script:
 
 ```sh
-python bb_extraction.py --in_folder 'data/laz_pc_data' --out_folder 'data/laz_bb'
+python bb_extraction.py --in_folder 'demo_data/pc' --out_folder 'demo_data/bb'
 ```
+
+These steps next step are not mandatory if you only want to run inference. However, it will need to be done to train a model.
+
+```sh
+python src/compute_normals.py --input_dir 'demo_data/bb' --output_dir 'demo_data/bb_nm' 
+```
+
+```sh
+python prepare.py --mode train --in_folder 'demo_data/bb_nm' --out_folder 'demo_data/processed' --use_rgb --use_intensity --use_normals --config_file 'Streetlights3D'
+```
+
 
 ### Inference
 
@@ -123,7 +134,15 @@ Now that the bounding boxes are ready, we can utilize a pre-trained model to pre
 Proceed with binary segmentation to identify the Light Source component of each streetlight using the pre-trained model. Run the command below to conduct the segmentation:
 
 ```sh
-python3 main.py --mode 'test' --in_folder 'processed/laz_bb' --out_folder 'predicted/' --snap_folder 'model/RGBI/Log_2024-05-07_08-46-07/snapshots' --no_prepare --use_rgb --use_intensity
+python3 main.py --mode 'test' --in_folder 'demo_data/bb' --out_folder 'demo_data/predicted' --snap_folder 'model/RGBIN/snapshots' --no_prepare --use_rgb --use_intensity --use_color
+```
+
+#### Train a new model
+
+The flags use_intensity, use_normals and use_rgb can be dropped to train models with less parameters.
+
+```sh
+python3 main.py --mode 'train' --in_folder 'demo_data/processed' --use_rgb --use_intensity --use_normals --config_file Streetlights3D
 ```
 
 This command runs in test mode, processes files from processed/laz_bb, saves the predictions in predicted/, and utilizes snapshots from trained_model/RGB_I/snapshots.
@@ -133,7 +152,7 @@ This command runs in test mode, processes files from processed/laz_bb, saves the
 Finally, merge the prediction results with the original point cloud data. This step integrates the segmentation results back into the spatial context of the original data, providing a comprehensive view of the outcomes:
 
 ```sh
-python3 merge.py --cloud_folder 'data/laz_pc_data' --pred_folder 'predicted/laz_bb' --out_folder 'merged'
+python3 merge.py --cloud_folder 'demo_data/bb' --pred_folder 'demo_data/predicted' --out_folder 'merged'
 ```
 
 This command merges prediction files from predicted/laz_bb with the point cloud data from data/laz_pc_data, outputting the merged data to merged.
@@ -146,7 +165,7 @@ To enable the use of RGB, intensity or normals during training or inference, you
 Now, you should run the clustering.py script to create a csv files with the positions of the light sources listed for each streetlight processed.
 
 ```sh
-python clustering.py --directory merged --output data/sheets/processed_sheets/clustered_amsterdam.csv --label 2
+python clustering.py --directory merged --output demo_data/sheets/clustered_amsterdam.csv --label 2
 ```
 
 ## Visual Representation in Blender
@@ -157,7 +176,7 @@ As it is a script run through blender, the variable path need to be changed dire
 Once it is done run in command line : 
 
 ```sh
-blender --background --python .\processing_blender.py
+blender --background --python .\processing_blender.py --laz_folder_path 'demo_data/pc' --save_directory 'demo_data/blend_files' --clusters_file_path demo_data/sheets/clustered_amsterdam.csv
 ```
 
 In the folder blend_files, you should have now blender file containing your visual representation ! 

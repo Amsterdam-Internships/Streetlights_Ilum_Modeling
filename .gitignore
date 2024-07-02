@@ -19,9 +19,7 @@
 *.tif
 
 # Pointcloud data
-*.laz
-*.las
-*.LAZ
+
 *.ply
 
 # Images
@@ -223,7 +221,11 @@ data/points_clouds_ply
 data/sara_pole
 data/test
 data/blend_files
-model/
+# model/
+data/tesr
+data/test_normals*
+data/test_val*
+data/train*
 
 /dataset/full_pc
 /dataset/bb_pc

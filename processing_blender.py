@@ -218,12 +218,7 @@ def adjust_cluster_coordinates(df, center):
 
     return df
 
-def main():
-    # Set directory paths
-    laz_folder_path = 'data/points_clouds_laz_ds'
-    save_directory = 'data/blend_files'
-    clusters_file_path = 'data/sheets/clusters_streetlights/cluster_full.csv'
-
+def process_laz_files(laz_folder_path, save_directory, clusters_file_path):
     # Ensure the save directory exists
     os.makedirs(save_directory, exist_ok=True)
 
@@ -234,7 +229,16 @@ def main():
             save_filename = f"{os.path.splitext(laz_file)[0]}.blend"
             print(f"Processing {laz_file_path}, saving as {save_filename}")
             setup_and_save(laz_file_path, save_directory, save_filename, clusters_file_path)
-                           
+
+def main():
+    parser = argparse.ArgumentParser(description="Process LAZ files and save results.")
+    parser.add_argument('--laz_folder_path', type=str, required=True, help='Directory containing LAZ files')
+    parser.add_argument('--save_directory', type=str, required=True, help='Directory to save processed files')
+    parser.add_argument('--clusters_file_path', type=str, required=True, help='Path to clusters CSV file')
+
+    args = parser.parse_args()
+
+    process_laz_files(args.laz_folder_path, args.save_directory, args.clusters_file_path)
 
 if __name__ == "__main__":
     main()

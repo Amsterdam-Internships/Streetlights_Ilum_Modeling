@@ -5,6 +5,7 @@ from os import makedirs
 from os.path import join, dirname, abspath, splitext, isdir
 import sys
 import time
+import os
 
 def log_out(out_str, log_f_out):
     log_f_out.write(out_str + '\n')
