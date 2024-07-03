@@ -5,6 +5,7 @@ import os
 import pandas as pd
 import argparse
 
+
 def read_and_filter_points(filepath, label_value=2):
     with laspy.open(filepath) as file:
         lidar = file.read()
@@ -12,7 +13,6 @@ def read_and_filter_points(filepath, label_value=2):
             labels = lidar['label']  # Replace 'label' with the actual field name if different
         except KeyError:
             raise KeyError("The specified field 'label' does not exist in the LAS file.")
-        
         # Applying filter
         mask = labels == label_value
         points = np.vstack((lidar.x, lidar.y, lidar.z)).transpose()[mask]
@@ -20,13 +20,15 @@ def read_and_filter_points(filepath, label_value=2):
         # Extracting scale and offset
         scale = (file.header.x_scale, file.header.y_scale, file.header.z_scale)
         offset = (file.header.x_offset, file.header.y_offset, file.header.z_offset)
-    
+
     return points, scale, offset
+
 
 def apply_dbscan(points, eps=0.3, min_samples=5):
     # DBSCAN clustering
     clustering = DBSCAN(eps=eps, min_samples=min_samples).fit(points)
     return clustering.labels_
+
 
 def calculate_centroids(points, labels):
     # Calculate centroids of clusters
@@ -38,12 +40,14 @@ def calculate_centroids(points, labels):
             centroids.append(centroid)
     return centroids
 
+
 def denormalize_coordinates(centroids, scale, offset):
     denormalized_centroids = []
     for centroid in centroids:
         denorm_centroid = (centroid * np.array(scale)) + np.array(offset)
         denormalized_centroids.append(denorm_centroid)
     return denormalized_centroids
+
 
 def process_directory(directory_path, label_value=2):
     data = []
@@ -54,7 +58,9 @@ def process_directory(directory_path, label_value=2):
             points, scale, offset = read_and_filter_points(filepath, label_value)
             labels = apply_dbscan(points)
             centroids = calculate_centroids(points, labels)
-            denormalized_centroids = denormalize_coordinates(centroids, scale, offset)
+            denormalized_centroids = denormalize_coordinates(
+                centroids, scale, offset
+            )
 
             row_data = {'File': filename}
             for i, centroid in enumerate(denormalized_centroids):
@@ -65,17 +71,30 @@ def process_directory(directory_path, label_value=2):
 
     return pd.DataFrame(data)
 
+
 def main():
-    parser = argparse.ArgumentParser(description='Process LiDAR data and extract clusters.')
-    parser.add_argument('--directory', type=str, required=True, help='Path to the directory containing LiDAR files')
-    parser.add_argument('--output', type=str, required=True, help='Output CSV file to save clusters data')
-    parser.add_argument('--label', type=int, default=2, help='Label value to filter points (default: 2)')
+    parser = argparse.ArgumentParser(
+        description='Process LiDAR data and extract clusters.'
+    )
+    parser.add_argument(
+        '--directory', type=str, required=True,
+        help='Path to the directory containing LiDAR files'
+    )
+    parser.add_argument(
+        '--output', type=str, required=True,
+        help='Output CSV file to save clusters data'
+    )
+    parser.add_argument(
+        '--label', type=int, default=2,
+        help='Label value to filter points (default: 2)'
+    )
     args = parser.parse_args()
 
     # Process the directory and save the results
     result_df = process_directory(args.directory, label_value=args.label)
     result_df.to_csv(args.output, index=False)
     print(f'Results saved to {args.output}')
+
 
 if __name__ == "__main__":
     main()

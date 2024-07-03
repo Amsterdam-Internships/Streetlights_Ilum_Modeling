@@ -1,35 +1,17 @@
-"""
-This script is designed to process a collection of .laz files (containing LiDAR point cloud data) located in a specified directory. 
-The primary function of the script is to create bounding boxes around certain points of interest (poles) identified in an external Excel file 
-and extract the relevant point cloud data from each .laz file into new, separate .laz files. 
-
-Key Features:
-1. Reads .laz files from a given directory and extracts numerical values from their filenames. These numbers, once identified, are used to 
-   determine specific sections of an Excel file (which contains coordinates of interest) to focus on.
-2. Filters the coordinates in the Excel file based on the extracted values from each .laz file's name. This filtering narrows down the relevant 
-   point coordinates around which bounding boxes will be created.
-3. For each point of interest (pole), a bounding box is defined and applied to the corresponding .laz file to isolate the relevant points in the point cloud.
-4. Extracts and writes these filtered points into new .laz files, each named according to the original file and the index of the pole in the data frame.
-
-Usage:
-- The script requires laspy, re, pandas, numpy, and os libraries.
-- In
-"""
-
 import laspy
-import re 
+import re
 import pandas as pd
-import numpy as np 
 import os
-import sys 
 import argparse
+
 
 def extract_numbers_from_string(s):
     """
     Extracts two numbers from a string that follows a specific pattern and multiplies them by 50.
 
-    The function uses a regular expression to search for a pattern 'final_<number>_<number>.laz' in the given string.
-    If the pattern is found, it extracts the two numbers, multiplies them each by 50, and returns them.
+    The function uses a regular expression to search for a pattern
+    'final_<number>_<number>.laz' in the given string. If the pattern is found,
+    it extracts the two numbers, multiplies them each by 50, and returns them.
 
     Parameters:
     s (str): The string from which to extract the numbers.
@@ -38,19 +20,20 @@ def extract_numbers_from_string(s):
     tuple of int: A tuple containing the two extracted numbers multiplied by 50.
                    Returns None if the pattern does not match.
     """
-
     match = re.search(r'final_(\d+)_(\d+).laz', s)
     if match:
         # Extracting the two numbers
         num1, num2 = match.groups()
-        return int(num1)*50 , int(num2)*50
+        return int(num1) * 50, int(num2) * 50
     else:
         # Return a default value or raise an error if the format doesn't match
         return None
-    
+
+
 def filter_pole_coordinates(filename, base_x, base_y):
     """
-    Filters pole coordinates from an Excel file based on specified base values for 'Grond X', 'Top X', 'Grond Y', and 'Top Y'.
+    Filters pole coordinates from an Excel file based on specified
+    base values for 'Grond X', 'Top X', 'Grond Y', and 'Top Y'.
 
     Parameters:
     filename (str): Path to the Excel file.
@@ -58,10 +41,11 @@ def filter_pole_coordinates(filename, base_x, base_y):
     base_y (float): The base value for filtering Y coordinates.
 
     Returns:
-    pandas.DataFrame: Filtered DataFrame with only the rows where 'Grond X', 'Top X', 'Grond Y', and 'Top Y' 
-                      fall within the specified range of base_x/base_y to base_x/base_y + 50.
+    pandas.DataFrame: Filtered DataFrame with only the rows where
+                      'Grond X', 'Top X', 'Grond Y', and 'Top Y'
+                      fall within the specified range of base_x/base_y
+                      to base_x/base_y + 50.
     """
-
     # Read the Excel file
     df = pd.read_csv(filename)
 
@@ -79,29 +63,35 @@ def filter_pole_coordinates(filename, base_x, base_y):
 
     return filtered_df[['Grond X', 'Top X', 'Grond Y', 'Top Y', 'Grond Z', 'Top Z']]
 
+
 def create_bounding_box_laz(input_laz_file, base_filename, poles_df, box_size=5):
     """
-    Processes a given LAZ file, creating individual bounding boxes around each point defined in the provided DataFrame. 
-    It then extracts points within each bounding box and writes them to new LAZ files.
+    Processes a given LAZ file, creating individual bounding boxes around
+    each point defined in the provided DataFrame. It then extracts points
+    within each bounding box and writes them to new LAZ files.
 
-    The function iterates over each row in the DataFrame, defines a bounding box around the point coordinates (expanded by a specified box size), 
-    filters the points from the original LAZ file within this bounding box, and writes these points to a new LAZ file.
+    The function iterates over each row in the DataFrame, defines a
+    bounding box around the point coordinates (expanded by a specified box size),
+    filters the points from the original LAZ file within this bounding box,
+    and writes these points to a new LAZ file.
 
     Parameters:
-    input_laz_file (str): Path to the input LAZ file containing the original point cloud data.
-    base_filename (str): Base path and filename for the output LAZ files. Each file will be appended with an index number.
-    poles_df (pandas.DataFrame): DataFrame containing the coordinates ('Grond X', 'Top X', 'Grond Y', 'Top Y', 'Grond Z', 'Top Z') for each point.
-    box_size (float, optional): Size of the bounding box to be created around each point. Defaults to 1.
+    input_laz_file (str): Path to the input LAZ file containing the
+                          original point cloud data.
+    base_filename (str): Base path and filename for the output LAZ files.
+                         Each file will be appended with an index number.
+    poles_df (pandas.DataFrame): DataFrame containing the coordinates
+                                ('Grond X', 'Top X', 'Grond Y', 'Top Y', 'Grond Z',
+                                'Top Z') for each point.
+    box_size (float, optional): Size of the bounding box to be created around each
+                                point. Defaults to 5.
 
-    Each output file is named using the base_filename followed by an underscore and the index of the row from the DataFrame.
+    Each output file is named using the base_filename followed by an underscore and
+    the index of the row from the DataFrame.
     """
-
     # Read the original LAZ file
     with laspy.open(input_laz_file) as file:
         las = file.read()
-
-        columns = ['Grond X', 'Grond Y', 'Grond Z', 'Top X', 'Top Y', 'Top Z']
-        # poles_df[columns] = poles_df[columns].apply(pd.to_numeric, errors='coerce')
 
         for index, row in poles_df.iterrows():
             # Define the bounding box for each point
@@ -110,8 +100,8 @@ def create_bounding_box_laz(input_laz_file, base_filename, poles_df, box_size=5)
                 'max_x': row['Top X'] + box_size,
                 'min_y': row['Grond Y'] - box_size,
                 'max_y': row['Top Y'] + box_size,
-                'min_z': float(row['Grond Z'].replace(',', '.')) - box_size + 6,
-                'max_z': float(row['Top Z'].replace(',', '.')) + box_size
+                'min_z': float(str(row['Grond Z']).replace(',', '.')) - box_size + 6,
+                'max_z': float(str(row['Top Z']).replace(',', '.')) + box_size
             }
 
             # Apply the bounding box filter
@@ -126,23 +116,28 @@ def create_bounding_box_laz(input_laz_file, base_filename, poles_df, box_size=5)
 
             # Write the filtered points to a new LAZ file
             output_laz_file = f"{base_filename}_{index}.laz"
-            
+
             # Create a new LasData object and assign the filtered points
             new_las = laspy.LasData(las.header)
             new_las.points = filtered_points
 
             new_las.write(output_laz_file)
 
+
 def main(directory, output_base_filename, sheet):
     """
-    Processes all .laz files in the specified directory, creating bounding boxes around points defined in an external Excel file.
+    Processes all .laz files in the specified directory, creating bounding boxes
+    around points defined in an external Excel file.
 
-    For each .laz file in the directory, this function extracts the base X and Y coordinates from the filename, filters relevant
-    points from a provided Excel file, and then creates a new .laz file in the output directory with points within the bounding box.
+    For each .laz file in the directory, this function extracts the base X and Y
+    coordinates from the filename, filters relevant points from a provided Excel
+    file, and then creates a new .laz file in the output directory with points
+    within the bounding box.
 
     Parameters:
     directory (str): Directory containing the original .laz files to process.
     output_base_filename (str): Base path and filename for the output .laz files.
+    sheet (str): Path to the Excel sheet containing coordinates of interest.
     """
     for filename in os.listdir(directory):
         if filename.endswith(".laz"):
@@ -151,18 +146,20 @@ def main(directory, output_base_filename, sheet):
             filtered_data = filter_pole_coordinates(sheet, base_x, base_y)
 
             # Process each file
-            create_bounding_box_laz(input_laz_file, output_base_filename, filtered_data)
+            create_bounding_box_laz(
+                input_laz_file, output_base_filename, filtered_data
+            )
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Bounding Box Extraction from LiDAR Data.')
     parser.add_argument('--in_folder', metavar='path', action='store',
-                        type=str, default = 'data/laz_pc_data', required=True)
+                        type=str, default='data/laz_pc_data', required=True)
     parser.add_argument('--out_folder', metavar='path', action='store',
-                        type=str, default = 'data/laz_bb')
-    parser.add_argument('--coordinates_csv', metavar='path', action='store', type=str, default = 'data/sheets/processed_sheets/clustered_amsterdam.csv')
+                        type=str, default='data/laz_bb')
+    parser.add_argument('--coordinates_csv', metavar='path', action='store', type=str,
+                        default='data/sheets/processed_sheets/clustered_amsterdam.csv')
     args = parser.parse_args()
-    if os.path.isdir(args.out_folder[-2]) == False:
-        os.mkdir(args.out_folder[-2])
+    if not os.path.isdir(args.out_folder):
+        os.mkdir(args.out_folder)
     main(args.in_folder, args.out_folder, args.coordinates_csv)
-    
-

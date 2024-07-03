@@ -1,5 +1,7 @@
 import os
 import laspy
+import argparse
+
 
 def count_points_in_laz_file(file_path):
     """
@@ -8,6 +10,7 @@ def count_points_in_laz_file(file_path):
     with laspy.open(file_path) as f:
         laz_data = f.read()
     return len(laz_data.points)
+
 
 def count_total_points_in_folder(input_folder):
     """
@@ -23,6 +26,7 @@ def count_total_points_in_folder(input_folder):
 
     print(f'Total number of points in folder: {total_points}')
     return total_points
+
 
 def count_points_per_class(folder_path):
     """
@@ -49,8 +53,25 @@ def count_points_per_class(folder_path):
 
     return class_counts
 
-# Example usage
-input_folder = 'data/train_val'
-b = 'data/test'  # Replace with your input folder path
-print(count_points_per_class(b))
-print(count_points_per_class(input_folder))
+
+def main():
+    parser = argparse.ArgumentParser(description="Point cloud file analysis")
+    parser.add_argument(
+        '--folder1', type=str, required=True,
+        help='Path to the first input folder')
+    parser.add_argument(
+        '--folder2', type=str, required=False,
+        help='Path to the second input folder')
+
+    args = parser.parse_args()
+
+    print(f'Class counts for folder: {args.folder1}')
+    print(count_points_per_class(args.folder1))
+
+    if args.folder2:
+        print(f'\nClass counts for folder: {args.folder2}')
+        print(count_points_per_class(args.folder2))
+
+
+if __name__ == "__main__":
+    main()

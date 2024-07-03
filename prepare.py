@@ -13,6 +13,7 @@ from core.helpers.helper_ply import write_ply
 from core.helpers.helper_tool import DataProcessing as DP
 import core.helpers.helper_filelists as utils
 
+
 def list_to_dict(features_content, sub_features):
     # TODO do this part in the grid_sub_sampling CPP code directly
     if args.use_rgb:
@@ -62,6 +63,7 @@ def get_features(data):
         features.append(normals)
     return np.hstack(features)
 
+
 def get_ply_content():
     ply_content = ['x', 'y', 'z']
     if args.use_rgb:
@@ -71,6 +73,7 @@ def get_ply_content():
     if args.use_normals:
         ply_content.extend(['normal_x', 'normal_y', 'normal_z'])
     return ply_content
+
 
 def run():
     in_files = glob.glob(join(args.in_folder, '*.laz'))
@@ -97,8 +100,6 @@ def run():
         os.makedirs(out_folder)
 
     # Initialize
-    size_of_files = 0
-
     files_tqdm = tqdm(files, unit='file', smoothing=0)
     for f in files_tqdm:
         base_filename = os.path.splitext(os.path.basename(f))[0]
@@ -115,7 +116,7 @@ def run():
 
         if args.mode == 'train':
             labels = data.label
-            if args.config_file == 'AHNTrees': # TODO use config file
+            if args.config_file == 'AHNTrees':  # TODO use config file
                 # Numpy array with all True
                 mask = np.ones((len(labels),), dtype=bool)
             else:
@@ -123,7 +124,7 @@ def run():
                     mask = ((labels == ignore_label))
                     labels[mask] = 255
 
-                # Move label indexes 
+                # Move label indexes
                 for label_to_move, idx in cfg.label_to_idx.items():
                     labels[labels == label_to_move] = idx
 

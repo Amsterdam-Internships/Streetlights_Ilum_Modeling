@@ -11,6 +11,14 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
+import bpy
+import laspy
+import numpy as np
+from bpy_extras.io_utils import ImportHelper
+from bpy.props import StringProperty
+from bpy.types import Operator
+from mathutils import Vector
+
 bl_info = {
     "name": "LiDAR-Tools",
     "author": "Brian Hynds",
@@ -23,13 +31,6 @@ bl_info = {
     "category": "Import-Export",
 }
 
-import bpy
-import laspy
-import numpy as np
-from bpy_extras.io_utils import ImportHelper
-from bpy.props import StringProperty
-from bpy.types import Operator
-from mathutils import Vector
 
 def get_attribute(header, attr_name, default="N/A"):
     if hasattr(header, attr_name):
@@ -37,13 +38,6 @@ def get_attribute(header, attr_name, default="N/A"):
     else:
         return default
 
-class IMPORT_OT_las_data(Operator, ImportHelper):
-    bl_idname = "import_scene.las_data"
-    bl_label = "Import LAS/LAZ data"
-    bl_options = {'PRESET', 'UNDO'}
-
-    filename_ext = ".las;.laz"  # Add support for LAZ files
-    filter_glob: StringProperty(default="*.las;*.laz", options={'HIDDEN'})  # Update the filter_glob to include LAZ files
 
 class IMPORT_OT_las_data(Operator, ImportHelper):
     bl_idname = "import_scene.las_data"
@@ -51,7 +45,8 @@ class IMPORT_OT_las_data(Operator, ImportHelper):
     bl_options = {'PRESET', 'UNDO'}
 
     filename_ext = ".las;.laz"  # Add support for LAZ files
-    filter_glob: StringProperty(default="*.las;*.laz", options={'HIDDEN'})  # Update the filter_glob to include LAZ files
+    filter_glob: StringProperty(
+        default="*.las;*.laz", options={'HIDDEN'})  # type: ignore
 
     def execute(self, context):
         # Read LAS/LAZ file
@@ -59,12 +54,14 @@ class IMPORT_OT_las_data(Operator, ImportHelper):
             # Get LAS points
             num_points_to_read = infile.header.point_count
             all_points = infile.read_points(n=num_points_to_read)
-            points = np.array([(point['X'] * infile.header.x_scale + infile.header.x_offset,
-                                point['Y'] * infile.header.y_scale + infile.header.y_offset,
-                                point['Z'] * infile.header.z_scale + infile.header.z_offset)
-                                for point in all_points])
-            
-            colors = (np.vstack((all_points['red'], all_points['green'], all_points['blue'])).T)/65536
+            points = np.array([
+                (point['X'] * infile.header.x_scale + infile.header.x_offset,
+                 point['Y'] * infile.header.y_scale + infile.header.y_offset,
+                 point['Z'] * infile.header.z_scale + infile.header.z_offset)
+                for point in all_points])
+
+            colors = (np.vstack((all_points['red'], all_points['green'],
+                                 all_points['blue'])).T) / 65536
 
             # Prepare LiDAR info
             lidar_info = {
@@ -86,7 +83,7 @@ class IMPORT_OT_las_data(Operator, ImportHelper):
 
         # Link the mesh to the scene
         context.collection.objects.link(obj)
-    
+
         # Store LiDAR info in the object as separate custom properties
         obj['lidar_filepath'] = lidar_info['filepath']
         obj['lidar_point_format'] = lidar_info['point_format'].id
@@ -96,20 +93,23 @@ class IMPORT_OT_las_data(Operator, ImportHelper):
         obj['lidar_max'] = get_attribute(lidar_info['header'], 'max')
         obj['lidar_scale'] = get_attribute(lidar_info['header'], 'scale')
         obj['lidar_offset'] = get_attribute(lidar_info['header'], 'offset')
-        obj['lidar_creation_date'] = get_attribute(lidar_info['header'], 'creation_date')
-        obj['lidar_gps_time_type'] = get_attribute(lidar_info['header'], 'gps_time_type')
-        obj['lidar_point_count_by_return'] = get_attribute(lidar_info['header'], 'point_count_by_return')
+        obj['lidar_creation_date'] = get_attribute(
+            lidar_info['header'], 'creation_date')
+        obj['lidar_gps_time_type'] = get_attribute(
+            lidar_info['header'], 'gps_time_type')
+        obj['lidar_point_count_by_return'] = get_attribute(
+            lidar_info['header'], 'point_count_by_return')
 
         # Create mesh vertices from points
         num_vertices = len(points)
-        faces = [(i, i, i) for i in range(num_vertices)] 
+        faces = [(i, i, i) for i in range(num_vertices)]
 
         mesh.from_pydata(points, [], faces)
         mesh.update()  # Update mesh data
 
-        
-        vertex_colors = mesh.vertex_colors.new(name="Col") if "Col" not in mesh.vertex_colors else mesh.vertex_colors["Col"]
-        
+        vertex_colors = (mesh.vertex_colors.new(name="Col") if "Col" not in mesh.vertex_colors
+                         else mesh.vertex_colors["Col"])
+
         # Assign colors through loops
         for loop in mesh.loops:
             loop_color = colors[loop.vertex_index]
@@ -127,6 +127,7 @@ class IMPORT_OT_las_data(Operator, ImportHelper):
 
         # Update mesh
         mesh.update()
+
 
 class LIDAR_PT_InfoPanel(bpy.types.Panel):
     bl_label = "LiDAR Info"
@@ -155,18 +156,22 @@ class LIDAR_PT_InfoPanel(bpy.types.Panel):
         else:
             layout.label(text="No LiDAR data available")
 
+
 def menu_func_import(self, context):
     self.layout.operator(IMPORT_OT_las_data.bl_idname, text="LAS/LAZ data (.las, .laz)")
+
 
 def register():
     bpy.utils.register_class(IMPORT_OT_las_data)
     bpy.utils.register_class(LIDAR_PT_InfoPanel)
     bpy.types.TOPBAR_MT_file_import.append(menu_func_import)
 
+
 def unregister():
     bpy.utils.unregister_class(IMPORT_OT_las_data)
     bpy.utils.unregister_class(LIDAR_PT_InfoPanel)
     bpy.types.TOPBAR_MT_file_import.remove(menu_func_import)
+
 
 if __name__ == "__main__":
     register()

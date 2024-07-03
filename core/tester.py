@@ -2,10 +2,9 @@ import tensorflow as tf
 import numpy as np
 import laspy
 from os import makedirs
-from os.path import join, dirname, abspath, splitext, isdir
-import sys
+from os.path import join, splitext, isdir
 import time
-import os
+
 
 def log_out(out_str, log_f_out):
     log_f_out.write(out_str + '\n')
@@ -37,9 +36,11 @@ class ModelTester:
         my_vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES)
         self.saver = tf.train.Saver(my_vars, max_to_keep=100)
         log_time = time.strftime('_%Y-%m-%d_%H-%M-%S', time.gmtime())
-        if not os.path.isdir('test_logs/'):
-                os.makedirs('test_logs/')
-        self.Log_file = open('test_logs/log_test_' + dataset.features_used + log_time + '.txt', 'w+')
+        if not isdir('test_logs/'):
+            makedirs('test_logs/')
+        self.Log_file = open(
+            'test_logs/log_test_' + dataset.features_used + log_time + '.txt', 'w+'
+        )
 
         # Create a session for running Ops on the Graph.
         on_cpu = False
@@ -59,8 +60,10 @@ class ModelTester:
         self.prob_logits = tf.nn.softmax(model.logits)
 
         # Initiate global prediction over all test clouds
-        self.test_probs = [np.zeros((l.data.shape[0], model.config.num_classes), dtype=np.float16)
-                           for l in dataset.input_trees['test']]
+        self.test_probs = [
+            np.zeros((l.data.shape[0], model.config.num_classes), dtype=np.float16)
+            for l in dataset.input_trees['test']
+        ]
 
     def test(self, model, dataset, test_path, num_votes=100):
         # Smoothing parameter for votes
@@ -75,18 +78,21 @@ class ModelTester:
 
         while last_min < num_votes:
             try:
-                ops = (self.prob_logits,
-                       model.labels,
-                       model.inputs['input_inds'],
-                       model.inputs['cloud_inds'],
-                       )
+                ops = (
+                    self.prob_logits,
+                    model.labels,
+                    model.inputs['input_inds'],
+                    model.inputs['cloud_inds'],
+                )
 
                 stacked_probs, _, point_idx, cloud_idx =\
                     self.sess.run(ops, {model.is_training: False})
-                stacked_probs = np.reshape(stacked_probs,
-                                           [model.config.test_batch_size,
-                                            model.config.num_points,
-                                            model.config.num_classes])
+                stacked_probs = np.reshape(
+                    stacked_probs,
+                    [model.config.test_batch_size,
+                     model.config.num_points,
+                     model.config.num_classes]
+                )
 
                 for j in range(np.shape(stacked_probs)[0]):
                     probs = stacked_probs[j, :, :]
@@ -114,8 +120,10 @@ class ModelTester:
                     if int(np.ceil(new_min)) % 1 == 0:
 
                         # Project predictions
-                        log_out(f'\nReproject Vote #{int(np.floor(new_min))}',
-                                self.Log_file)
+                        log_out(
+                            f'\nReproject Vote #{int(np.floor(new_min))}',
+                            self.Log_file
+                        )
                         proj_probs_list = []
 
                         print(f'Reprojecting {num_val} test files.')
@@ -128,19 +136,24 @@ class ModelTester:
                         print('\nDone!')
 
                         print(f'Writing predictions for {num_val} test files.')
-                        for i_test, file_path in enumerate(files):  # TODO merge with other for loop
+                        for i_test, file_path in enumerate(files):
                             print('.', end='')
                             # Get the predicted labels
                             preds = (dataset.label_values[
                                 np.argmax(proj_probs_list[i_test], axis=1)]
-                                     .astype(np.uint8))
+                                .astype(np.uint8))
                             probs = (np.max(proj_probs_list[i_test], axis=1)
                                      .astype(np.float16))
 
                             # Save preds
-                            cloud_name = splitext(file_path.split('/')[-1])[0].split('filtered')[-1]
-                            write_las(model.config.idx_to_label, join(test_path, 'pred'+cloud_name+'.laz'),
-                                      preds, probs=probs)
+                            cloud_name = splitext(
+                                file_path.split('/')[-1]
+                            )[0].split('filtered')[-1]
+                            write_las(
+                                model.config.idx_to_label,
+                                join(test_path, 'pred' + cloud_name + '.laz'),
+                                preds, probs=probs
+                            )
 
                         print('\nDone!')
                         self.sess.close()
