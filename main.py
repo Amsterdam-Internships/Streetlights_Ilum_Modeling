@@ -1,19 +1,20 @@
-import os
-import sys
-import glob
-import time
-import pickle
 import argparse
+import glob
+import os
+import pickle
+import sys
+import time
+from os.path import join
+
+import laspy
 import numpy as np
 import pandas as pd
 import tensorflow as tf
-from os.path import join
 from sklearn.neighbors import KDTree
-import laspy
 
+from core.helpers.helper_tool import DataProcessing as DP
 from core.models.RandLANet import Network
 from core.tester import ModelTester
-from core.helpers.helper_tool import DataProcessing as DP
 
 # Set random seeds
 np.random.seed(42)
@@ -410,7 +411,8 @@ if __name__ == '__main__':
     elif args.config_file == 'Streetlights3D':
         from configs.config_Streetlights3D import ConfigStreetlights3D as cfg
     elif args.config_file == 'Streetlights3D_val':
-        from configs.config_Streetlights3D_val import ConfigStreetlights3D_val as cfg
+        from configs.config_Streetlights3D_val import \
+            ConfigStreetlights3D_val as cfg
 
     if not args.use_rgb:
         print('RGB values are not used in this configuration.')

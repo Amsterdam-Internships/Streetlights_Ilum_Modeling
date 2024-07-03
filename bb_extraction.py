@@ -1,8 +1,9 @@
-import laspy
-import re
-import pandas as pd
-import os
 import argparse
+import os
+import re
+
+import laspy
+import pandas as pd
 
 
 def extract_numbers_from_string(s):

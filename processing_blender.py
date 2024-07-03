@@ -1,9 +1,10 @@
-import bpy
+import argparse
 import os
 import re
-import pandas as pd
+
+import bpy
 import numpy as np
-import argparse
+import pandas as pd
 
 
 def import_laz(filepath):

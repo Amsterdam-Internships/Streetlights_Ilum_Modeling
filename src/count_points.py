@@ -1,6 +1,7 @@
-import os
-import laspy
 import argparse
+import os
+
+import laspy
 
 
 def count_points_in_laz_file(file_path):

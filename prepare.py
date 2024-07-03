@@ -1,17 +1,18 @@
-from sklearn.neighbors import KDTree
-from os.path import join
-import numpy as np
-import os
-import sys
-import glob
-import pickle
 import argparse
+import glob
+import os
+import pickle
+import sys
+from os.path import join
+
 import laspy
+import numpy as np
+from sklearn.neighbors import KDTree
 from tqdm import tqdm
 
+import core.helpers.helper_filelists as utils
 from core.helpers.helper_ply import write_ply
 from core.helpers.helper_tool import DataProcessing as DP
-import core.helpers.helper_filelists as utils
 
 
 def list_to_dict(features_content, sub_features):

@@ -1,7 +1,8 @@
 import os
+
 import laspy
-import open3d as o3d
 import numpy as np
+import open3d as o3d
 from scipy.spatial import cKDTree
 
 

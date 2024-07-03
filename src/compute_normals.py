@@ -1,8 +1,9 @@
+import argparse
 import os
+
 import laspy
 import numpy as np
 import open3d as o3d
-import argparse
 
 
 def process_laz_files(input_dir, output_dir):

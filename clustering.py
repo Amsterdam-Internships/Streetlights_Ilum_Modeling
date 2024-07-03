@@ -1,9 +1,10 @@
-import numpy as np
-import laspy
-from sklearn.cluster import DBSCAN
-import os
-import pandas as pd
 import argparse
+import os
+
+import laspy
+import numpy as np
+import pandas as pd
+from sklearn.cluster import DBSCAN
 
 
 def read_and_filter_points(filepath, label_value=2):
