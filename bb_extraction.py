@@ -21,7 +21,7 @@ def extract_numbers_from_string(s):
     tuple of int: A tuple containing the two extracted numbers multiplied by 50.
                    Returns None if the pattern does not match.
     """
-    match = re.search(r'final_(\d+)_(\d+).laz', s)
+    match = re.search(r"final_(\d+)_(\d+).laz", s)
     if match:
         # Extracting the two numbers
         num1, num2 = match.groups()
@@ -51,18 +51,24 @@ def filter_pole_coordinates(filename, base_x, base_y):
     df = pd.read_csv(filename)
 
     # Assuming that the decimal separator is a comma, replace it with a dot and convert to float
-    df['Grond X'] = df['Grond X'].apply(lambda x: float(str(x).replace(',', '.')))
-    df['Top X'] = df['Top X'].apply(lambda x: float(str(x).replace(',', '.')))
-    df['Grond Y'] = df['Grond Y'].apply(lambda x: float(str(x).replace(',', '.')))
-    df['Top Y'] = df['Top Y'].apply(lambda x: float(str(x).replace(',', '.')))
+    df["Grond X"] = df["Grond X"].apply(lambda x: float(str(x).replace(",", ".")))
+    df["Top X"] = df["Top X"].apply(lambda x: float(str(x).replace(",", ".")))
+    df["Grond Y"] = df["Grond Y"].apply(lambda x: float(str(x).replace(",", ".")))
+    df["Top Y"] = df["Top Y"].apply(lambda x: float(str(x).replace(",", ".")))
 
     # Filter the data
-    filtered_df = df[(df['Grond X'] >= base_x) & (df['Grond X'] <= base_x + 50) &
-                     (df['Top X'] >= base_x) & (df['Top X'] <= base_x + 50) &
-                     (df['Grond Y'] >= base_y) & (df['Grond Y'] <= base_y + 50) &
-                     (df['Top Y'] >= base_y) & (df['Top Y'] <= base_y + 50)]
+    filtered_df = df[
+        (df["Grond X"] >= base_x)
+        & (df["Grond X"] <= base_x + 50)
+        & (df["Top X"] >= base_x)
+        & (df["Top X"] <= base_x + 50)
+        & (df["Grond Y"] >= base_y)
+        & (df["Grond Y"] <= base_y + 50)
+        & (df["Top Y"] >= base_y)
+        & (df["Top Y"] <= base_y + 50)
+    ]
 
-    return filtered_df[['Grond X', 'Top X', 'Grond Y', 'Top Y', 'Grond Z', 'Top Z']]
+    return filtered_df[["Grond X", "Top X", "Grond Y", "Top Y", "Grond Z", "Top Z"]]
 
 
 def create_bounding_box_laz(input_laz_file, base_filename, poles_df, box_size=5):
@@ -97,19 +103,22 @@ def create_bounding_box_laz(input_laz_file, base_filename, poles_df, box_size=5)
         for index, row in poles_df.iterrows():
             # Define the bounding box for each point
             bounding_box = {
-                'min_x': row['Grond X'] - box_size,
-                'max_x': row['Top X'] + box_size,
-                'min_y': row['Grond Y'] - box_size,
-                'max_y': row['Top Y'] + box_size,
-                'min_z': float(str(row['Grond Z']).replace(',', '.')) - box_size + 6,
-                'max_z': float(str(row['Top Z']).replace(',', '.')) + box_size
+                "min_x": row["Grond X"] - box_size,
+                "max_x": row["Top X"] + box_size,
+                "min_y": row["Grond Y"] - box_size,
+                "max_y": row["Top Y"] + box_size,
+                "min_z": float(str(row["Grond Z"]).replace(",", ".")) - box_size + 6,
+                "max_z": float(str(row["Top Z"]).replace(",", ".")) + box_size,
             }
 
             # Apply the bounding box filter
             mask = (
-                (las.x >= bounding_box['min_x']) & (las.x <= bounding_box['max_x']) &
-                (las.y >= bounding_box['min_y']) & (las.y <= bounding_box['max_y']) &
-                (las.z >= bounding_box['min_z']) & (las.z <= bounding_box['max_z'])
+                (las.x >= bounding_box["min_x"])
+                & (las.x <= bounding_box["max_x"])
+                & (las.y >= bounding_box["min_y"])
+                & (las.y <= bounding_box["max_y"])
+                & (las.z >= bounding_box["min_z"])
+                & (las.z <= bounding_box["max_z"])
             )
 
             # Extract points within the bounding box
@@ -147,19 +156,31 @@ def main(directory, output_base_filename, sheet):
             filtered_data = filter_pole_coordinates(sheet, base_x, base_y)
 
             # Process each file
-            create_bounding_box_laz(
-                input_laz_file, output_base_filename, filtered_data
-            )
+            create_bounding_box_laz(input_laz_file, output_base_filename, filtered_data)
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Bounding Box Extraction from LiDAR Data.')
-    parser.add_argument('--in_folder', metavar='path', action='store',
-                        type=str, default='data/laz_pc_data', required=True)
-    parser.add_argument('--out_folder', metavar='path', action='store',
-                        type=str, default='data/laz_bb')
-    parser.add_argument('--coordinates_csv', metavar='path', action='store', type=str,
-                        default='data/sheets/processed_sheets/clustered_amsterdam.csv')
+    parser = argparse.ArgumentParser(
+        description="Bounding Box Extraction from LiDAR Data."
+    )
+    parser.add_argument(
+        "--in_folder",
+        metavar="path",
+        action="store",
+        type=str,
+        default="data/laz_pc_data",
+        required=True,
+    )
+    parser.add_argument(
+        "--out_folder", metavar="path", action="store", type=str, default="data/laz_bb"
+    )
+    parser.add_argument(
+        "--coordinates_csv",
+        metavar="path",
+        action="store",
+        type=str,
+        default="data/sheets/processed_sheets/clustered_amsterdam.csv",
+    )
     args = parser.parse_args()
     if not os.path.isdir(args.out_folder):
         os.mkdir(args.out_folder)

@@ -55,20 +55,32 @@ def save_laz(pts, clr=None, intensity=None, norms=None, seg=None, output_path=No
     if intensity is not None:
         las.intensity = intensity
     if norms is not None:
-        las.add_extra_dim(laspy.ExtraBytesParams(
-            name="normal_x", type=np.float32, description="Normal X component"))
-        las.add_extra_dim(laspy.ExtraBytesParams(
-            name="normal_y", type=np.float32, description="Normal Y component"))
-        las.add_extra_dim(laspy.ExtraBytesParams(
-            name="normal_z", type=np.float32, description="Normal Z component"))
+        las.add_extra_dim(
+            laspy.ExtraBytesParams(
+                name="normal_x", type=np.float32, description="Normal X component"
+            )
+        )
+        las.add_extra_dim(
+            laspy.ExtraBytesParams(
+                name="normal_y", type=np.float32, description="Normal Y component"
+            )
+        )
+        las.add_extra_dim(
+            laspy.ExtraBytesParams(
+                name="normal_z", type=np.float32, description="Normal Z component"
+            )
+        )
         las.normal_x = norms[:, 0]
         las.normal_y = norms[:, 1]
         las.normal_z = norms[:, 2]
 
     # Create and assign custom dimension for labels
     if seg is not None:
-        las.add_extra_dim(laspy.ExtraBytesParams(
-            name="label", type=np.uint8, description="Segment label"))
+        las.add_extra_dim(
+            laspy.ExtraBytesParams(
+                name="label", type=np.uint8, description="Segment label"
+            )
+        )
         las.label = seg
 
     las.write(output_path)
@@ -83,21 +95,28 @@ def process_folder(input_folder, output_folder, ratio=0.1):
         os.makedirs(output_folder)
 
     for file_name in os.listdir(input_folder):
-        if file_name.endswith('.laz'):
+        if file_name.endswith(".laz"):
             input_path = os.path.join(input_folder, file_name)
             output_path = os.path.join(output_folder, file_name)
 
             pts, clr, intensity, norms, seg = read_laz(input_path)
             ds_pts, ds_clr, ds_intensity, ds_norms, ds_seg = random_downsample(
-                pts, clr=clr, intensity=intensity, norms=norms, seg=seg, ratio=ratio)
-            save_laz(ds_pts, clr=ds_clr, intensity=ds_intensity,
-                     norms=ds_norms, seg=ds_seg, output_path=output_path)
+                pts, clr=clr, intensity=intensity, norms=norms, seg=seg, ratio=ratio
+            )
+            save_laz(
+                ds_pts,
+                clr=ds_clr,
+                intensity=ds_intensity,
+                norms=ds_norms,
+                seg=ds_seg,
+                output_path=output_path,
+            )
 
-            print(f'Randomly downsampled and saved: {input_path} -> {output_path}')
+            print(f"Randomly downsampled and saved: {input_path} -> {output_path}")
 
 
 # Example usage
 sample_ratio = 0.33
-input_folder = 'data/test_normals'  # Replace with your input folder path
-output_folder = 'data/test_normals_random_ds_{}'.format(sample_ratio)
+input_folder = "data/test_normals"  # Replace with your input folder path
+output_folder = "data/test_normals_random_ds_{}".format(sample_ratio)
 process_folder(input_folder, output_folder, sample_ratio=sample_ratio)

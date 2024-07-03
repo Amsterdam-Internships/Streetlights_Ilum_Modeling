@@ -20,12 +20,12 @@ def count_total_points_in_folder(input_folder):
     total_points = 0
 
     for file_name in os.listdir(input_folder):
-        if file_name.endswith('.laz'):
+        if file_name.endswith(".laz"):
             file_path = os.path.join(input_folder, file_name)
             num_points = count_points_in_laz_file(file_path)
             total_points += num_points
 
-    print(f'Total number of points in folder: {total_points}')
+    print(f"Total number of points in folder: {total_points}")
     return total_points
 
 
@@ -42,7 +42,7 @@ def count_points_per_class(folder_path):
     class_counts = {}
 
     for filename in os.listdir(folder_path):
-        if filename.endswith('.laz') or filename.endswith('.las'):
+        if filename.endswith(".laz") or filename.endswith(".las"):
             file_path = os.path.join(folder_path, filename)
             las_data = laspy.read(file_path)
 
@@ -58,19 +58,19 @@ def count_points_per_class(folder_path):
 def main():
     parser = argparse.ArgumentParser(description="Point cloud file analysis")
     parser.add_argument(
-        '--folder1', type=str, required=True,
-        help='Path to the first input folder')
+        "--folder1", type=str, required=True, help="Path to the first input folder"
+    )
     parser.add_argument(
-        '--folder2', type=str, required=False,
-        help='Path to the second input folder')
+        "--folder2", type=str, required=False, help="Path to the second input folder"
+    )
 
     args = parser.parse_args()
 
-    print(f'Class counts for folder: {args.folder1}')
+    print(f"Class counts for folder: {args.folder1}")
     print(count_points_per_class(args.folder1))
 
     if args.folder2:
-        print(f'\nClass counts for folder: {args.folder2}')
+        print(f"\nClass counts for folder: {args.folder2}")
         print(count_points_per_class(args.folder2))
 
 
