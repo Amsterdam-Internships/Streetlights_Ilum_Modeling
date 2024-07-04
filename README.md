@@ -137,6 +137,9 @@ Proceed with binary segmentation to identify the Light Source component of each 
 python3 main.py --mode 'test' --in_folder 'demo_data/bb' --out_folder 'demo_data/predicted' --snap_folder 'model/RGBIN/snapshots' --no_prepare --use_rgb --use_intensity --use_color
 ```
 
+Please now that two models are available for now in the model folder. They were the most performing ones. RGBIN is a model trained on the original point cloud dataset while RGBIN_downsampeld was trained in the lower density version, with 33% of the original points.
+See blog post.
+
 #### Train a new model
 
 The flags use_intensity, use_normals and use_rgb can be dropped to train models with less parameters.
