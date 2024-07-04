@@ -184,6 +184,16 @@ blender --background --python .\processing_blender.py --laz_folder_path 'demo_da
 
 In the folder blend_files, you should have now blender file containing your visual representation ! 
 
+#### Contributing
 
+Please feel free to contribute by visiting our [GitHub repository](https://github.com/Amsterdam-Internships/Streetlights_Ilum_Modeling) or by [contacting us](https://amsterdamintelligence.com/contact/).
 
+#### Acknowledgements
 
+This repository was created by Amsterdam Intelligence for the City of Amsterdam.
+
+This repository was created in collaboration with Amsterdam Intelligence for the City of Amsterdam.
+
+#### License 
+
+This project is licensed under the terms of the European Union Public License 1.2 (EUPL-1.2)
