@@ -232,3 +232,8 @@ data/train*
 dataset/blend_files
 dataset/dae 
 dataset/point_clouds
+
+test_logs
+tf_train_log
+tf_train_logs
+train_logs
