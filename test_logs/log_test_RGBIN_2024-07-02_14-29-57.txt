@@ -1,3 +1,0 @@
-Epoch   0, end. Min possibility = 6.4
-
-Reproject Vote #6
